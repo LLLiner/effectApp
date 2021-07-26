@@ -92,3 +92,18 @@ E:\code\V14-+ - 副本+加方差+平均\Client\Client\obj\x86\Debug\Client.cspro
 E:\code\V14-+ - 副本+加方差+平均\Client\Client\obj\x86\Debug\Client.csproj.CopyComplete
 E:\code\V14-+ - 副本+加方差+平均\Client\Client\obj\x86\Debug\DebugClient.exe
 E:\code\V14-+ - 副本+加方差+平均\Client\Client\obj\x86\Debug\DebugClient.pdb
+E:\code\gitDir\effectApp\Client\Client\bin\DebugClient.exe.config
+E:\code\gitDir\effectApp\Client\Client\bin\DebugClient.exe
+E:\code\gitDir\effectApp\Client\Client\bin\DebugClient.pdb
+E:\code\gitDir\effectApp\Client\Client\bin\IPAddressControlLib.dll
+E:\code\gitDir\effectApp\Client\Client\obj\x86\Debug\Client.MainWindows.resources
+E:\code\gitDir\effectApp\Client\Client\obj\x86\Debug\Client.Properties.Resources.resources
+E:\code\gitDir\effectApp\Client\Client\obj\x86\Debug\Client.setForm.resources
+E:\code\gitDir\effectApp\Client\Client\obj\x86\Debug\Client.structureForm.resources
+E:\code\gitDir\effectApp\Client\Client\obj\x86\Debug\Client.wireless.resources
+E:\code\gitDir\effectApp\Client\Client\obj\x86\Debug\Client.csproj.GenerateResource.cache
+E:\code\gitDir\effectApp\Client\Client\obj\x86\Debug\Client.csproj.CoreCompileInputs.cache
+E:\code\gitDir\effectApp\Client\Client\obj\x86\Debug\Client.csproj.CopyComplete
+E:\code\gitDir\effectApp\Client\Client\obj\x86\Debug\DebugClient.exe
+E:\code\gitDir\effectApp\Client\Client\obj\x86\Debug\DebugClient.pdb
+E:\code\gitDir\effectApp\Client\Client\obj\x86\Debug\Client.csprojAssemblyReference.cache

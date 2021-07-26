@@ -829,6 +829,7 @@
             this.groupBox11.Controls.Add(this.labelMin);
             this.groupBox11.Controls.Add(this.labelMax);
             this.groupBox11.Controls.Add(this.button7);
+            this.groupBox11.Enabled = false;
             this.groupBox11.Location = new System.Drawing.Point(1751, 37);
             this.groupBox11.Name = "groupBox11";
             this.groupBox11.Size = new System.Drawing.Size(152, 275);
@@ -844,7 +845,6 @@
             this.labelAva.Size = new System.Drawing.Size(82, 15);
             this.labelAva.TabIndex = 8;
             this.labelAva.Text = "平均单向：";
-            this.labelAva.Click += new System.EventHandler(this.label6_Click);
             // 
             // labelMin
             // 

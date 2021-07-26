@@ -222,7 +222,7 @@ namespace Client
             ip_hd.ip_verlen = (0x45); //version and HLength
             ip_hd.ip_tos = priority;//TOS
             ip_hd.ip_totallength = (0x2400);//IP数据包总长度-------后面还会被自动修改
-            //ip_hd.ip_totallength = (0x2700);//IP数据包总长度-------后面还会被自动修改
+            //ip_hd.ip_totallength = (0x2e00);26
             ip_hd.ip_id = (0x0000);//identification
 
             ip_hd.ip_offset = (0x0000);//3位flags+13位片偏移，把这里改成0040还是不行
@@ -238,6 +238,7 @@ namespace Client
             udp_hd.srcPort = (0xc322);
             udp_hd.dstPort = (0x1027);
             udp_hd.totallength = (0x1000);//总长度-----------------不知道为啥，这个地方没有被自动修改--------------如果总长度字段和实际数据长度字段对应不上，wireshark会爆红
+            //udp_hd.totallength = (0x1a00);//26
             //udp_hd.udpCheckSum = (0x4492);//验和----------------自动被修改
             udp_hd.udpCheckSum = (0x0000);//检验和
 
@@ -278,6 +279,97 @@ namespace Client
                     socket.Close();
                     return -1;
                 }
+            //}
+
+
+        }
+        public int sendTest(String srcIp_str, String srcPort_str, String dstIp_str, String dstPort_str, byte[] cmd, int p)
+        {
+            //通过自定义ip数据包发送出去
+            IPAddress temp1 = IPAddress.Parse(srcIp_str);
+            UInt32 srcIp = BitConverter.ToUInt32(temp1.GetAddressBytes(), 0);
+            IPAddress temp2 = IPAddress.Parse(dstIp_str);
+            UInt32 dstIp = BitConverter.ToUInt32(temp2.GetAddressBytes(), 0);
+
+            ushort srcPort = Convert.ToUInt16(srcPort_str);
+            //Console.WriteLine("Convert.ToUInt16(8899)" + Convert.ToString(srcPort, 16)); //22c3
+            ushort dstPort = Convert.ToUInt16(dstPort_str);
+            //Console.WriteLine("Convert.ToUInt16(10000)" + Convert.ToString(dstPort, 16));//2710
+
+            /*
+            Console.WriteLine("这边接收到的数据srcPort:"+ Convert.ToString(srcPort, 16));
+            Console.WriteLine("dstPort:" + Convert.ToString(dstPort, 16));
+            */
+            byte[] sendBuf2 = new byte[SENDBUF_SIZE];
+
+            IpHeader ip_hd = new IpHeader();
+            UdpHeader udp_hd = new UdpHeader();
+
+            byte priority = Convert.ToByte(p);
+            //Console.WriteLine("移位前byte输出：" + Convert.ToString(priority, 2));
+            priority = (byte)((priority & 0x07) << 5);
+            //Console.WriteLine("移位后byte输出：" + Convert.ToString(priority, 2));
+
+            ip_hd.ip_verlen = (0x45); //version and HLength
+            ip_hd.ip_tos = priority;//TOS
+            //ip_hd.ip_totallength = (0x2400);//IP数据包总长度-------后面还会被自动修改
+            ip_hd.ip_totallength = (0x3000);
+            ip_hd.ip_id = (0x0000);//identification
+
+            ip_hd.ip_offset = (0x0000);//3位flags+13位片偏移，把这里改成0040还是不行
+
+            ip_hd.ip_ttl = (0x40);//TTL
+            ip_hd.ip_protocol = (0x88);//传输层协议
+            ip_hd.ip_HChecksum = (0x7b0c);//头部校验和---------后面会被自动修改
+            ip_hd.ip_srcaddr = srcIp;//源ip
+            ip_hd.ip_destaddr = dstIp;//目的ip
+            //udp头--直接这样会出现字节序问题，但是ip这样又不会
+            //udp_hd.srcPort = srcPort;//源端口
+            //udp_hd.dstPort = dstPort;//目的端口
+            udp_hd.srcPort = (0xc322);
+            udp_hd.dstPort = (0x1027);
+            //udp_hd.totallength = (0x1000);//总长度-----不知道为啥，这个地方没有被自动修改---如果总长度字段和实际数据长度字段对应不上，wireshark会爆红
+            udp_hd.totallength = (0x1c00);//28
+            //udp_hd.udpCheckSum = (0x4492);//验和------自动被修改
+            udp_hd.udpCheckSum = (0x0000);//检验和
+
+            //Console.WriteLine("udp_hd.srcPort:" + Convert.ToString(udp_hd.srcPort, 16));
+            //Console.WriteLine("udp_hd.dstPort:" + Convert.ToString(udp_hd.dstPort, 16));
+
+            sendBuf2 = byUnsafe(ip_hd, udp_hd, cmd);//获取自定义的ip包
+
+            //移到全局
+            Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Raw, ProtocolType.Udp);
+            socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.HeaderIncluded, 1);  //指示应用程序为输出输出数据报提供ip头---应该是发送的时候
+                                                                                               //socket.SetSocketOption(SocketOptionLevel.Socket,SocketOptionName.HeaderIncluded,)
+
+            //IPEndPoint IPEPoint = new IPEndPoint(IPAddress.Parse("192.168.1.119"), 8080); //
+
+            //while (true)
+            //{
+            //System.Threading.Thread.Sleep(2000);
+            try
+            {
+                int sendSize = 0;
+                EndPoint ep = new IPEndPoint(IPAddress.Parse("192.168.1.100"), 8080);
+                //sendTo只是将数据拷贝到内存，交给系统的网络模块，就算把网线拔了返回值依然是正常的
+                sendSize = socket.SendTo(sendBuf2, ep); //不知道IPEndPoint会不会强制转换成EndPoint
+
+                /*
+                Console.WriteLine(" ");
+                Console.WriteLine("--------------------------------------------------");
+                Console.WriteLine("已成功发送" + sendSize + "字节数据");
+                Console.WriteLine("sendBuf:" + ByteArrayToHexString(sendBuf2));
+                */
+                socket.Close();
+                return sendSize;
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine("发送错误!" + ex.Message);
+                socket.Close();
+                return -1;
+            }
             //}
 
 

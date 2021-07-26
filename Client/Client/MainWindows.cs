@@ -25,10 +25,13 @@ namespace Client
     
     public partial class MainWindows : Form
     {
-        public static bool wifi = true;
+        //public static bool wifi = true;
+        public static bool wifi = false;
+        string unitStr = " ";
         //用于输出测试数据
         int debug = 0;
-        public static String srcIp = "192.168.1.200";
+        public static String srcIp = "0.0.0.0";
+        //public static String srcIp = "10.0.1.200";
 
         //用于机械臂
         static SshClient sshClient;
@@ -119,6 +122,9 @@ namespace Client
             Control.CheckForIllegalCrossThreadCalls = false;
             mainForm = this;
 
+            //用于自动获取网卡ip
+            getSrcIp();
+
             //1、网络摄像头的初始化
             m_bInitSDK = CHCNetSDK.NET_DVR_Init();
             if (m_bInitSDK == false)
@@ -130,6 +136,15 @@ namespace Client
             {
                 //保存SDK日志 To save the SDK log
                 CHCNetSDK.NET_DVR_SetLogToFile(3, "C:\\SdkLog\\", true);
+            }
+
+            if (wifi == false)
+            {
+                unitStr = "us";
+            }
+            else
+            {
+                unitStr = "ms";
             }
 
         }
@@ -413,7 +428,7 @@ namespace Client
         private void sendStatus(String srcIp_str, String srcPort_str, String dstIp_str, String dstPort_str, int p)
         {
             // byte[] cmd = CModbusDll.WriteDO(Convert.ToInt16("254"), io - 1, !isopen);
-            byte[] cmd = { 0xFE, 0x04, 0x03, 0xE8, 0x00, 0x14, 0x64, 0x7A };//查询状态指令，两个控制器是一样的
+            byte[] cmd = { 0xFE, 0x04, 0x03, 0xE8, 0x00, 0x14, 0x64, 0x7A};//查询状态指令，两个控制器是一样的
             int rst = UIHSocket.send2(srcIp_str, srcPort_str, dstIp_str, dstPort_str, cmd, p);
         }
 
@@ -481,6 +496,14 @@ namespace Client
                 statusTimer2.Enabled = true;
             }
             */
+        }
+
+
+        //无线测试时，模拟的额外发包器
+        private void sendTestPacket(String srcIp_str, String srcPort_str, String dstIp_str, String dstPort_str, int p)
+        {
+            byte[] cmd = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,19, 20 };
+            int rst = UIHSocket.sendTest(srcIp_str, srcPort_str, dstIp_str, dstPort_str, cmd, p);
         }
 
 
@@ -635,7 +658,7 @@ namespace Client
 
             //上行平均
             MySqlCommand upAvgCmd = new MySqlCommand("SELECT AVG(delay) as avg from time where upFlag=1 AND date_sub(now(), interval 1 minute) < time AND priority =?lightP;SELECT AVG(delay) as avg from time where upFlag=1 AND date_sub(now(), interval 1 minute) < time AND priority =?motorP;", myConnect);
-            upAvgCmd.Parameters.AddWithValue("@lightP", lightP);
+            upAvgCmd.Parameters.AddWithValue("@lightP", 0);
             upAvgCmd.Parameters.AddWithValue("@motorP", motorP);
 
             DataTable dt = new DataTable();
@@ -697,7 +720,7 @@ namespace Client
                     if (readerAvg[0].ToString() != "" && i == 0)
                     {
                         downMotorAvg = Convert.ToDouble(readerAvg["avg"].ToString());
-                        downLightAvg.ToString("0.00");
+                        //downLightAvg.ToString("0.00");
                     }
                     readerAvg.NextResult(); //当多个结果集的时候可以调用NextResult
                     i++;
@@ -771,7 +794,7 @@ namespace Client
                     if (readerAvgUp[0].ToString() != "" && i == 0)
                     {
                         upMotorAvg = Convert.ToDouble(readerAvgUp["avg"].ToString());
-                        upLightAvg.ToString("0.00");
+                        //upLightAvg.ToString("0.00");
                     }
                     readerAvgUp.NextResult(); //当多个结果集的时候可以调用NextResult
                     i++;
@@ -785,20 +808,16 @@ namespace Client
                 Console.WriteLine(ex.Message);
                 throw;
             }
-            string unitStr = " us";
-            if(wifi != false)
-            {
-                unitStr = " ms";
-            }
+            
             //下行
-            this.lightDownLab.Text = downLightGap.ToString("0.00") + unitStr;
-            this.motorDownLab.Text = downMotorGap.ToString("0.00") + unitStr;
-            this.lightUpLab.Text = upLightGap.ToString("0.00")+ unitStr;
-            this.motorUpLab.Text = upMotorGap.ToString("0.00") + unitStr;
-            this.lightDownAvglab.Text = downLightAvg.ToString("0.00") + unitStr;
-            this.motorDownAvglab.Text = downMotorAvg.ToString("0.00") + unitStr;
-            this.lightUpAvglab.Text = upLightAvg.ToString("0.00") + unitStr;
-            this.motorUpAvglab.Text = upMotorAvg.ToString("0.00") + unitStr;
+            this.lightDownLab.Text = downLightGap.ToString("0.00") +" " + unitStr;
+            this.motorDownLab.Text = downMotorGap.ToString("0.00") + " " + unitStr;
+            this.lightUpLab.Text = upLightGap.ToString("0.00")+ " " + unitStr;
+            this.motorUpLab.Text = upMotorGap.ToString("0.00") + " " + unitStr;
+            this.lightDownAvglab.Text = downLightAvg.ToString("0.00") + " " + unitStr;
+            this.motorDownAvglab.Text = downMotorAvg.ToString("0.00") + " " + unitStr;
+            this.lightUpAvglab.Text = upLightAvg.ToString("0.00") + " " + unitStr;
+            this.motorUpAvglab.Text = upMotorAvg.ToString("0.00") + " " + unitStr;
 
         }
 
@@ -1040,6 +1059,10 @@ namespace Client
 
         private void MainWindows_Load(object sender, EventArgs e)
         {
+            //打开一个线程进行udp时延数据的接收
+            UDPSocket.startReceive();
+            //Console.Read(); //等待键盘输入，退出程序。使调试时能看到输出结果。如果没有此句，命令窗口会一闪而过。
+
             //设置默认优先级
             TBPlight.Text = lightP.ToString();
             TBPmotor.Text = motorP.ToString();
@@ -1112,14 +1135,7 @@ namespace Client
             chart2.ChartAreas[0].AxisX.LabelStyle.Format = "HH:mm:ss";
             chart2.ChartAreas[0].AxisX.LabelStyle.IntervalType = DateTimeIntervalType.Seconds;
             chart2.ChartAreas[0].AxisX.MajorGrid.IntervalType = DateTimeIntervalType.Seconds;
-            if(wifi == false)
-            {
-                chart2.ChartAreas[0].AxisY.Title = "时延（us）";
-            }
-            else
-            {
-                chart2.ChartAreas[0].AxisY.Title = "时延（ms）";
-            }
+            chart2.ChartAreas[0].AxisY.Title = "时延-"+ unitStr;
 
             //------------------------------------------------------------------------------
 
@@ -1152,7 +1168,8 @@ namespace Client
             chart1.Series[0].XValueType = ChartValueType.DateTime;
             chart1.ChartAreas[0].AxisX.LabelStyle.Format = "HH:mm:ss";
             //chart1.ChartAreas[0].AxisX.LabelStyle.Format = "ss:ffffff";
-            chart1.ChartAreas[0].AxisY.Title = "时延（us）";
+            chart1.ChartAreas[0].AxisY.Title = "时延-" + unitStr;
+
             chart1.ChartAreas[0].AxisX.LabelStyle.IntervalType = DateTimeIntervalType.Seconds;
             chart1.ChartAreas[0].AxisX.MajorGrid.IntervalType = DateTimeIntervalType.Seconds;
 
@@ -1189,7 +1206,7 @@ namespace Client
             offsetChart.ChartAreas[0].AxisX.LabelStyle.Format = "HH:mm:ss";
             offsetChart.ChartAreas[0].AxisX.LabelStyle.IntervalType = DateTimeIntervalType.Seconds;
             offsetChart.ChartAreas[0].AxisX.MajorGrid.IntervalType = DateTimeIntervalType.Seconds;
-            offsetChart.ChartAreas[0].AxisY.Title = "时延（ns）";
+            offsetChart.ChartAreas[0].AxisY.Title = "时延-" + unitStr;
 
         }
         private void MainWindows_FormClosing(object sender, FormClosingEventArgs e)
@@ -1358,6 +1375,13 @@ namespace Client
             String dstPort2 = "10000";
             sendStatus(srcIp, srcPort2, dstIp2, dstPort2, motorP);
             //*/
+
+            String dstIp3 = "192.168.1.100";
+            String srcPort3 = "8899";
+            String dstPort3 = "10000";
+            sendTestPacket(srcIp, srcPort3, dstIp3, dstPort3, lightP);
+
+            sendTestPacket(srcIp, srcPort3, dstIp3, dstPort3, motorP);
         }
 
         private void statuesTimer2_Tick(object sender, EventArgs e)
@@ -1594,16 +1618,7 @@ namespace Client
             this.Show();
 
         }
-
-        private void label7_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void label6_Click(object sender, EventArgs e)
-        {
-
-        }
+        
 
         private void timerPing_Tick(object sender, EventArgs e)
         {
@@ -1659,6 +1674,43 @@ namespace Client
             this.labelMax.Text = "最大：" + max / 2 + "ms";
             this.labelMin.Text = "最小：" + min / 2 + "ms";
             this.labelAva.Text = "平均：" + rttAva / 2 + "ms";
+        }
+
+
+        //自动获取网口ip
+        private void getSrcIp()
+        {
+            IPAddress ipAddress;
+            NetworkInterface[] adapters = NetworkInterface.GetAllNetworkInterfaces();//获取本机所有网卡对象
+            foreach (NetworkInterface adapter in adapters)
+            {
+                //if (adapter.Name.Contains("以太网"))//枚举条件：描述中包含"Virtual"
+                if (adapter.NetworkInterfaceType.ToString() == "Ethernet")//枚举条件：描述中包含"Virtual"
+                {
+                    Console.WriteLine("");
+                    IPInterfaceProperties ipProperties = adapter.GetIPProperties();//获取IP配置
+                    UnicastIPAddressInformationCollection ipCollection = ipProperties.UnicastAddresses;//获取单播地址集
+                    foreach (UnicastIPAddressInformation ip in ipCollection)
+                    {
+                        if (ip.Address.AddressFamily == AddressFamily.InterNetwork)//只要ipv4的
+                        {
+                            ipAddress = ip.Address;//获取ip
+                            srcIp = ip.Address.ToString();
+                            Console.WriteLine("获取到的ip：" + ip.Address.ToString());
+                            if(srcIp == "192.168.1.200")
+                            {
+                                wifi = false;
+                            }
+                            else
+                            {
+                                wifi = true;
+                            }
+                        }
+                            
+                    }
+                    break;
+                }
+            }
         }
     }
 
